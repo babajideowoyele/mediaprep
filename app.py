@@ -413,6 +413,8 @@ def scrub(job_id, target, overwrite=False):
                 img = Image.open(f)
                 clean = Image.new(img.mode, img.size)
                 clean.putdata(list(img.getdata()))   # pixels only — no EXIF/GPS/thumbnail
+                if img.mode == "P" and img.getpalette():
+                    clean.putpalette(img.getpalette())  # keep indexed colours
                 if overwrite:
                     tmp = f.with_name(f.stem + "_tmp" + f.suffix)
                     clean.save(tmp); tmp.replace(f)
@@ -472,8 +474,21 @@ class Handler(BaseHTTPRequestHandler):
         else:
             self.send_error(404)
 
+    def _origin_ok(self):
+        # Block DNS-rebinding (non-loopback Host) and cross-site CSRF (foreign Origin).
+        host = (self.headers.get("Host") or "").rsplit(":", 1)[0].strip("[]")
+        if host not in ("127.0.0.1", "localhost", "::1"):
+            return False
+        origin = self.headers.get("Origin")
+        if origin and urlparse(origin).hostname not in ("127.0.0.1", "localhost", "::1"):
+            return False
+        return True
+
     def do_POST(self):
         parsed = urlparse(self.path)
+        if not self._origin_ok():
+            self._json({"error": "blocked: cross-origin request"}, code=403)
+            return
         try:
             if parsed.path == "/api/inspect":
                 self._json({"rows": inspect(self._read()["path"].strip())})
