@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MEDIAPREP</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#f5f5f5; --card:#fff; --hover:#f4f4f4; --border:#e0e0e0;
+  --text:#161616; --text2:#525252; --focus:#0f62fe;
+  --success:#198038; --success-l:#defbe6; --warn:#f1c21b; --warn-l:#fff8e1; --warn-d:#8a6a00;
+  --error:#da1e28; --error-l:#fff1f1; --info:#0f62fe; --info-l:#edf5ff;
+  --ink:#161616; --on-ink:#fff; --header-bg:#161616; --header-fg:#f4f4f4;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#161616; --card:#262626; --hover:#333; --border:#3d3d3d; --text:#f4f4f4; --text2:#a8a8a8;
+  --success:#42be65; --success-l:#0d3016; --warn:#f1c21b; --warn-l:#332a00; --warn-d:#f1c21b;
+  --error:#ff8389; --error-l:#3d1418; --info:#78a9ff; --info-l:#0d2136;
+  --ink:#f4f4f4; --on-ink:#161616; --header-bg:#0b0b0b;
+}}
+:root[data-theme="dark"]{
+  --bg:#161616; --card:#262626; --hover:#333; --border:#3d3d3d; --text:#f4f4f4; --text2:#a8a8a8;
+  --success:#42be65; --success-l:#0d3016; --warn:#f1c21b; --warn-l:#332a00; --warn-d:#f1c21b;
+  --error:#ff8389; --error-l:#3d1418; --info:#78a9ff; --info-l:#0d2136;
+  --ink:#f4f4f4; --on-ink:#161616; --header-bg:#0b0b0b;
+}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--text);line-height:1.5;height:100vh;overflow:hidden}
+*:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.mono{font-family:'IBM Plex Mono',monospace}
+
+.accent-bar{height:3px;background:var(--ink)}
+.app-header{display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:48px;background:var(--header-bg);color:var(--header-fg);flex-shrink:0}
+.app-logo{font-size:14px;font-weight:600;display:flex;align-items:center;gap:10px;letter-spacing:.5px}
+.theme-btn{width:32px;height:32px;display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid rgba(255,255,255,.25);color:var(--header-fg);cursor:pointer;font-size:13px}
+.theme-btn:hover{background:rgba(255,255,255,.12)}
+.header-meta{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8d8d8d}
+
+.app-body{display:flex;height:calc(100vh - 51px)}
+.sidebar{width:230px;background:var(--card);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
+.sidebar-label{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);padding:16px 16px 8px}
+.nav-item{display:flex;align-items:center;gap:12px;padding:12px 16px;font-size:13px;font-weight:400;color:var(--text2);cursor:pointer;border-left:3px solid transparent;transition:all .15s}
+.nav-item:hover{background:var(--hover);color:var(--text)}
+.nav-item.active{background:var(--hover);color:var(--text);font-weight:600;border-left-color:var(--ink)}
+.nav-item i{width:18px;text-align:center;font-size:15px}
+.nav-item small{display:block;font-size:10px;color:var(--text2);font-weight:400}
+.sidebar-foot{margin-top:auto;padding:16px;border-top:1px solid var(--border);font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text2)}
+
+.main{flex:1;overflow-y:auto;padding:28px 32px}
+.panel{display:none;max-width:900px}
+.panel.active{display:block}
+.page-label{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text2);margin-bottom:4px}
+.page-title{font-size:26px;font-weight:300;margin-bottom:4px}
+.page-title strong{font-weight:600}
+.page-desc{font-size:14px;color:var(--text2);margin-bottom:24px}
+
+.card{background:var(--card);border:1px solid var(--border);margin-bottom:16px}
+.card-head{padding:12px 18px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px}
+.card-body{padding:18px}
+label.fld{display:block;font-size:12px;font-weight:500;color:var(--text2);margin-bottom:6px}
+.row{display:flex;gap:8px}
+input[type=text]{flex:1;font-family:inherit;font-size:14px;padding:10px 12px;border:none;border-bottom:1px solid var(--text2);background:var(--hover);color:var(--text)}
+input[type=text]:focus{outline:none;border-bottom:2px solid var(--focus)}
+select{font-family:inherit;font-size:13px;color:var(--text);background:var(--card);border:1px solid var(--border);padding:8px 10px;cursor:pointer}
+.hint{font-size:11px;color:var(--text2);margin-top:6px}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:8px 18px;font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;border:none;white-space:nowrap}
+.btn-primary{background:var(--ink);color:var(--on-ink)}
+.btn-primary:hover{opacity:.85}
+.btn-primary:disabled{background:#8d8d8d;color:#f4f4f4;cursor:not-allowed;opacity:1}
+.btn-secondary{background:var(--card);color:var(--text);border:1px solid var(--ink)}
+.btn-secondary:hover{background:var(--hover)}
+.btn-ghost{background:transparent;color:var(--text2);border:none}
+.btn-ghost:hover{background:var(--hover);color:var(--text)}
+.btn-sm{min-height:30px;padding:4px 10px;font-size:12px}
+
+.opt-grid{display:flex;flex-wrap:wrap;gap:8px}
+.opt{position:relative;cursor:pointer}
+.opt input{position:absolute;opacity:0}
+.opt span{display:inline-flex;flex-direction:column;align-items:center;min-width:58px;padding:9px 13px;border:1px solid var(--border);background:var(--card);font-size:13px;font-weight:500}
+.opt span small{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text2);font-weight:400;margin-top:2px}
+.opt:hover span{border-color:var(--ink)}
+.opt input:checked + span{background:var(--ink);color:var(--on-ink);border-color:var(--ink)}
+.opt input:checked + span small{color:var(--on-ink);opacity:.7}
+.opt input:disabled + span{opacity:.4;cursor:not-allowed}
+.chk{display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:6px 0;margin-right:16px;cursor:pointer}
+
+.tag{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.tag-pref{background:var(--success-l);color:var(--success)}
+.tag-acc{background:var(--warn-l);color:var(--warn-d)}
+.tag-rev{background:var(--error-l);color:var(--error)}
+.tag-info{background:var(--info-l);color:var(--info)}
+
+.progress-track{height:6px;background:var(--border);overflow:hidden;margin:10px 0 8px}
+.progress-fill{height:100%;background:var(--info);width:0;transition:width .3s}
+.progress-fill.indeterminate{width:35%;background:var(--ink);animation:indet 1.1s ease-in-out infinite}
+.progress-fill.done{background:var(--success);width:100%}
+.progress-fill.err{background:var(--error);width:100%}
+@keyframes indet{0%{margin-left:-35%}100%{margin-left:100%}}
+.prog-line{display:flex;justify-content:space-between;font-size:12px;color:var(--text2)}
+
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-family:'IBM Plex Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--text2);font-weight:600;padding:8px 10px;border-bottom:1px solid var(--border);background:var(--hover)}
+td{padding:9px 10px;border-bottom:1px solid var(--border);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+.fname{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px}
+.tprops{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text2)}
+
+.file-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+.file-item:last-child{border-bottom:none}
+.file-item i{color:var(--text2)}
+.file-name{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.banner{padding:12px 16px;font-size:13px;display:flex;align-items:flex-start;gap:10px;margin-bottom:16px}
+.banner-warn{background:var(--warn-l);color:var(--warn-d);border-left:3px solid var(--warn)}
+.hidden{display:none}
+@media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<div class="accent-bar"></div>
+<header class="app-header">
+  <div class="app-logo"><i class="fas fa-clapperboard"></i> MEDIAPREP</div>
+  <div style="display:flex;align-items:center;gap:14px">
+    <span class="header-meta" id="envMeta">local</span>
+    <button class="theme-btn" id="themeBtn" title="Toggle light / dark"><i class="fas fa-moon"></i></button>
+  </div>
+</header>
+
+<div class="app-body">
+  <aside class="sidebar">
+    <div class="sidebar-label">Prepare media</div>
+    <div class="nav-item active" data-tool="transcribe"><i class="fas fa-closed-captioning"></i><span>Transcribe<small>audio/video → text</small></span></div>
+    <div class="nav-item" data-tool="archive"><i class="fas fa-box-archive"></i><span>Archive Check<small>DANS formats</small></span></div>
+    <div class="nav-item" data-tool="scrub"><i class="fas fa-broom"></i><span>Scrub Metadata<small>EXIF / GPS / tags</small></span></div>
+    <div class="sidebar-foot">
+      MEDIAPREP v1.0<br><span id="gpuMeta">—</span><br>local · 127.0.0.1
+    </div>
+  </aside>
+
+  <main class="main">
+    <div id="envBanner"></div>
+
+    <!-- ── TRANSCRIBE ── -->
+    <section class="panel active" id="panel-transcribe">
+      <p class="page-label">Transcribe</p>
+      <h1 class="page-title">Speech → <strong>text</strong></h1>
+      <p class="page-desc">Local Whisper transcription to SRT, WebVTT, plain text, or ELAN <code>.eaf</code>. Nothing is uploaded — audio never leaves your machine.</p>
+      <div class="card"><div class="card-body">
+        <label class="fld">Audio or video file (full path)</label>
+        <input type="text" id="t_path" placeholder="C:\path\to\interview.mp4">
+        <div style="display:flex;flex-wrap:wrap;gap:20px;margin-top:18px">
+          <div><label class="fld">Model</label>
+            <select id="t_model">
+              <option value="tiny">tiny · fastest</option>
+              <option value="base">base</option>
+              <option value="small" selected>small · balanced</option>
+              <option value="medium">medium</option>
+              <option value="large-v3">large-v3 · best</option>
+            </select></div>
+          <div><label class="fld">Language</label>
+            <select id="t_lang">
+              <option value="">auto-detect</option>
+              <option value="en">English</option><option value="nl">Dutch</option>
+              <option value="de">German</option><option value="fr">French</option>
+              <option value="es">Spanish</option><option value="yo">Yoruba</option>
+            </select></div>
+          <div><label class="fld">Device</label>
+            <select id="t_device"><option value="cpu" selected>CPU</option></select>
+            <div class="hint" id="gpuHint"></div></div>
+        </div>
+        <div style="margin-top:18px">
+          <label class="fld">Output formats</label>
+          <div class="opt-grid" id="t_formats">
+            <label class="chk"><input type="checkbox" value="srt" checked> SRT</label>
+            <label class="chk"><input type="checkbox" value="vtt"> WebVTT</label>
+            <label class="chk"><input type="checkbox" value="txt"> Plain text</label>
+            <label class="chk"><input type="checkbox" value="eaf" checked> ELAN .eaf</label>
+          </div>
+        </div>
+        <button class="btn btn-primary" id="t_run" style="margin-top:18px"><i class="fas fa-wand-magic-sparkles"></i> Transcribe</button>
+      </div></div>
+      <div class="card hidden" id="t_prog"></div>
+    </section>
+
+    <!-- ── ARCHIVE CHECK ── -->
+    <section class="panel" id="panel-archive">
+      <p class="page-label">Archive Check</p>
+      <h1 class="page-title">Format <strong>readiness</strong></h1>
+      <p class="page-desc">Inspect codecs and containers, flag them against <a href="https://dans.knaw.nl/en/file-formats/" target="_blank" rel="noopener">DANS preferred formats</a>, and convert to a preservation master.</p>
+      <div class="card"><div class="card-body">
+        <label class="fld">File or folder (full path)</label>
+        <div class="row">
+          <input type="text" id="a_path" placeholder="C:\path\to\dataset">
+          <button class="btn btn-secondary" id="a_run"><i class="fas fa-magnifying-glass"></i> Inspect</button>
+        </div>
+        <div class="hint">A folder is scanned recursively (up to 500 media/image files).</div>
+      </div></div>
+      <div class="card hidden" id="a_result"><div style="overflow-x:auto"><table id="a_table"></table></div></div>
+      <div class="card hidden" id="a_prog"></div>
+    </section>
+
+    <!-- ── SCRUB ── -->
+    <section class="panel" id="panel-scrub">
+      <p class="page-label">Scrub Metadata</p>
+      <h1 class="page-title">Strip <strong>hidden data</strong></h1>
+      <p class="page-desc">Find and remove EXIF, GPS, and embedded tags before you share. Images are rebuilt pixel-only; audio/video keep streams but drop all tags.</p>
+      <div class="card"><div class="card-body">
+        <label class="fld">File or folder (full path)</label>
+        <div class="row">
+          <input type="text" id="s_path" placeholder="C:\path\to\photos">
+          <button class="btn btn-secondary" id="s_scan"><i class="fas fa-magnifying-glass"></i> Scan</button>
+        </div>
+        <div style="margin-top:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+          <label class="chk"><input type="checkbox" id="s_overwrite"> Overwrite originals (otherwise writes <span class="mono">_clean</span> copies)</label>
+          <button class="btn btn-primary btn-sm hidden" id="s_run"><i class="fas fa-broom"></i> Scrub all</button>
+        </div>
+      </div></div>
+      <div class="card hidden" id="s_result"><div style="overflow-x:auto"><table id="s_table"></table></div></div>
+      <div class="card hidden" id="s_prog"></div>
+    </section>
+  </main>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const PREFS='mp_prefs';
+function loadPrefs(){try{return JSON.parse(localStorage.getItem(PREFS))||{}}catch(e){return{}}}
+function savePrefs(p){localStorage.setItem(PREFS,JSON.stringify(Object.assign(loadPrefs(),p)))}
+const prefs=loadPrefs();
+
+// theme
+function applyTheme(t){const r=document.documentElement;
+  if(t==='light'||t==='dark')r.setAttribute('data-theme',t);else r.removeAttribute('data-theme');
+  const dark=t==='dark'||(!t&&matchMedia('(prefers-color-scheme: dark)').matches);
+  const i=$('#themeBtn')&&$('#themeBtn').querySelector('i'); if(i)i.className=dark?'fas fa-sun':'fas fa-moon';}
+if(prefs.theme)applyTheme(prefs.theme);
+addEventListener('DOMContentLoaded',()=>{applyTheme(prefs.theme);
+  $('#themeBtn').onclick=()=>{const cur=document.documentElement.getAttribute('data-theme');
+    const now=cur||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');
+    const next=now==='dark'?'light':'dark'; applyTheme(next); savePrefs({theme:next});};});
+
+// env
+fetch('/api/env').then(r=>r.json()).then(env=>{
+  $('#gpuMeta').textContent = env.gpu ? 'GPU: available' : 'GPU: none (CPU)';
+  if(env.gpu){ $('#t_device').insertAdjacentHTML('beforeend','<option value="cuda">GPU (CUDA)</option>');
+    $('#gpuHint').textContent='CUDA needs cuDNN libs; falls back if it errors.'; }
+  ['t_path','a_path','s_path'].forEach(id=>{ if(prefs[id]) $('#'+id).value=prefs[id]; });
+  if(env.problems&&env.problems.length){
+    $('#envBanner').innerHTML='<div class="banner banner-warn"><i class="fas fa-triangle-exclamation"></i><div>'
+      +env.problems.map(p=>'· '+p).join('<br>')+'</div></div>';
+  }
+});
+
+// sidebar nav
+document.querySelectorAll('.nav-item').forEach(n=>n.onclick=()=>{
+  document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
+  n.classList.add('active');
+  const tool=n.dataset.tool;
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  $('#panel-'+tool).classList.add('active');
+});
+
+function escapeHtml(s){return(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function baseName(p){return p.split(/[\\/]/).pop()}
+function openPath(p){fetch('/api/open',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:p})})}
+
+// shared SSE progress into a card element
+function runJob(job, el, label){
+  el.classList.remove('hidden');
+  el.innerHTML='<div class="card-head"><i class="fas fa-gauge-high"></i> <span class="s">Working…</span>'
+    +'<span class="t" style="margin-left:auto"></span></div><div class="card-body">'
+    +'<div class="progress-track"><div class="progress-fill indeterminate f"></div></div>'
+    +'<div class="prog-line"><span class="m">Starting…</span><span class="mono p"></span></div>'
+    +'<div class="files" style="margin-top:14px"></div></div>';
+  const q=s=>el.querySelector(s);
+  const es=new EventSource('/api/events?job='+job);
+  es.onmessage=ev=>{
+    const st=JSON.parse(ev.data);
+    q('.s').textContent=label; q('.m').textContent=st.message||'';
+    const f=q('.f');
+    if(st.status==='error'){ q('.t').innerHTML='<span class="tag tag-rev">Error</span>'; f.className='progress-fill err f'; q('.p').textContent=''; es.close(); return; }
+    if(st.status==='cancelled'){ q('.t').innerHTML='<span class="tag">Cancelled</span>'; es.close(); return; }
+    if(st.status==='done'){
+      q('.t').innerHTML='<span class="tag tag-pref">Done</span>'; f.className='progress-fill done f'; q('.p').textContent='100%';
+      const files=st.files||[];
+      q('.files').innerHTML=files.map(x=>'<div class="file-item"><i class="fas fa-file"></i><span class="file-name">'+escapeHtml(baseName(x))+'</span></div>').join('')
+        +(files.length?'<button class="btn btn-secondary btn-sm" style="margin-top:12px" onclick="openPath(\''+ (files[0]||'').replace(/\\/g,'\\\\').replace(/\x27/g,'\\\x27') +'\')"><i class="fas fa-folder-open"></i> Open folder</button>':'');
+      es.close(); return;
+    }
+    q('.t').innerHTML='<span class="tag tag-info"><i class="fas fa-spinner fa-spin"></i> '+(st.stage||'run')+'</span>';
+    if(typeof st.percent==='number'){ f.className='progress-fill f'; f.style.width=st.percent+'%'; q('.p').textContent=st.percent.toFixed(0)+'%'+(st.detail?' · '+st.detail:''); }
+    else { f.className='progress-fill indeterminate f'; q('.p').textContent=st.detail||''; }
+  };
+  es.onerror=()=>es.close();
+}
+
+// ── Transcribe ──
+$('#t_run').onclick=async()=>{
+  const path=$('#t_path').value.trim(); if(!path)return;
+  const formats=[...document.querySelectorAll('#t_formats input:checked')].map(c=>c.value);
+  if(!formats.length){ alert('Pick at least one output format.'); return; }
+  savePrefs({t_path:path});
+  const body={path, model:$('#t_model').value, language:$('#t_lang').value,
+    device:$('#t_device').value, formats};
+  $('#t_run').disabled=true;
+  const r=await fetch('/api/transcribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const {job,error}=await r.json();
+  $('#t_run').disabled=false;
+  if(error){ $('#t_prog').classList.remove('hidden'); $('#t_prog').innerHTML='<div class="card-body"><span class="tag tag-rev">Error</span> '+escapeHtml(error)+'</div>'; return; }
+  runJob(job,$('#t_prog'),'Transcribing');
+};
+
+// ── Archive Check ──
+const STATUS_TAG={preferred:['tag-pref','preferred'],acceptable:['tag-acc','acceptable'],review:['tag-rev','review']};
+const CONVERT_OPTS={
+  video:[['mkv-remux','→ MKV (remux)'],['mkv-ffv1','→ MKV/FFV1 (lossless)']],
+  audio:[['flac','→ FLAC']],
+  image:[['tiff','→ TIFF'],['png','→ PNG']],
+};
+$('#a_run').onclick=async()=>{
+  const path=$('#a_path').value.trim(); if(!path)return;
+  savePrefs({a_path:path});
+  const btn=$('#a_run'); btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Inspecting';
+  try{
+    const r=await fetch('/api/inspect',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path})});
+    const d=await r.json(); if(d.error)throw new Error(d.error);
+    renderArchive(d.rows);
+  }catch(e){ $('#a_result').classList.remove('hidden'); $('#a_table').innerHTML='<tr><td style="color:var(--error)">'+escapeHtml(e.message)+'</td></tr>'; }
+  finally{ btn.disabled=false; btn.innerHTML='<i class="fas fa-magnifying-glass"></i> Inspect'; }
+};
+function renderArchive(rows){
+  $('#a_result').classList.remove('hidden');
+  if(!rows.length){ $('#a_table').innerHTML='<tr><td>No media or image files found.</td></tr>'; return; }
+  const counts={preferred:0,acceptable:0,review:0};
+  rows.forEach(r=>counts[r.status]=(counts[r.status]||0)+1);
+  let html='<tr><th>File</th><th>Kind</th><th>Container / codecs</th><th>DANS status</th><th></th></tr>';
+  rows.forEach((r,i)=>{
+    const[cls,lbl]=STATUS_TAG[r.status]||['tag','?'];
+    const codecs=[r.vcodec,r.acodec].filter(Boolean).join(' / ')||'—';
+    const opts=(CONVERT_OPTS[r.kind]||[]).map(([t,l])=>'<option value="'+t+'">'+l+'</option>').join('');
+    const conv=r.status==='preferred'?'':(opts?'<select class="conv" data-i="'+i+'"><option value="">convert…</option>'+opts+'</select>':'');
+    html+='<tr title="'+escapeHtml(r.note)+'"><td class="fname">'+escapeHtml(r.name)+'</td>'
+      +'<td class="tprops">'+r.kind+'</td>'
+      +'<td class="tprops">'+escapeHtml(r.container)+'<br>'+escapeHtml(codecs)+'</td>'
+      +'<td><span class="tag '+cls+'">'+lbl+'</span></td>'
+      +'<td>'+conv+'</td></tr>';
+  });
+  html+='<tr><td colspan="5" class="tprops" style="padding-top:12px">'
+    +counts.preferred+' preferred · '+counts.acceptable+' acceptable · '+counts.review+' to review</td></tr>';
+  $('#a_table').innerHTML=html;
+  window._aRows=rows;
+  document.querySelectorAll('.conv').forEach(sel=>sel.onchange=()=>{
+    const row=window._aRows[sel.dataset.i]; const target=sel.value; if(!target)return;
+    sel.disabled=true;
+    fetch('/api/convert',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:row.path,target})})
+      .then(r=>r.json()).then(({job})=>runJob(job,$('#a_prog'),'Converting'));
+  });
+}
+
+// ── Scrub ──
+$('#s_scan').onclick=async()=>{
+  const path=$('#s_path').value.trim(); if(!path)return;
+  savePrefs({s_path:path});
+  const btn=$('#s_scan'); btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Scanning';
+  try{
+    const r=await fetch('/api/scan-meta',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path})});
+    const d=await r.json(); if(d.error)throw new Error(d.error);
+    renderScrub(d.rows);
+  }catch(e){ $('#s_result').classList.remove('hidden'); $('#s_table').innerHTML='<tr><td style="color:var(--error)">'+escapeHtml(e.message)+'</td></tr>'; $('#s_run').classList.add('hidden'); }
+  finally{ btn.disabled=false; btn.innerHTML='<i class="fas fa-magnifying-glass"></i> Scan'; }
+};
+function renderScrub(rows){
+  $('#s_result').classList.remove('hidden');
+  if(!rows.length){ $('#s_table').innerHTML='<tr><td>No media or image files found.</td></tr>'; $('#s_run').classList.add('hidden'); return; }
+  const withMeta=rows.filter(r=>r.count>0).length, withGps=rows.filter(r=>r.has_gps).length;
+  let html='<tr><th>File</th><th>Kind</th><th>Tags</th><th>GPS</th><th>Details</th></tr>';
+  rows.forEach(r=>{
+    html+='<tr><td class="fname">'+escapeHtml(r.name)+'</td><td class="tprops">'+r.kind+'</td>'
+      +'<td class="tprops">'+r.count+'</td>'
+      +'<td>'+(r.has_gps?'<span class="tag tag-rev"><i class="fas fa-location-dot"></i> GPS</span>':'<span class="tprops">—</span>')+'</td>'
+      +'<td class="tprops" title="'+escapeHtml(r.tags.join(', '))+'">'+escapeHtml(r.tags.slice(0,5).join(', '))+(r.tags.length>5?' …':'')+'</td></tr>';
+  });
+  html+='<tr><td colspan="5" class="tprops" style="padding-top:12px">'+rows.length+' file(s) · '+withMeta+' with metadata · '+withGps+' with GPS</td></tr>';
+  $('#s_table').innerHTML=html;
+  $('#s_run').classList.toggle('hidden', withMeta===0);
+}
+$('#s_run').onclick=async()=>{
+  const path=$('#s_path').value.trim(); if(!path)return;
+  const overwrite=$('#s_overwrite').checked;
+  if(overwrite && !confirm('Overwrite the original files in place? This cannot be undone.')) return;
+  const r=await fetch('/api/scrub',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path,overwrite})});
+  const {job,error}=await r.json();
+  if(error){ $('#s_prog').classList.remove('hidden'); $('#s_prog').innerHTML='<div class="card-body"><span class="tag tag-rev">Error</span> '+escapeHtml(error)+'</div>'; return; }
+  runJob(job,$('#s_prog'),'Scrubbing');
+};
+</script>
+</body>
+</html>

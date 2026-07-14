@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.pyc
+
+# runtime scratch
+_check.js
+_c.js
+
+# never commit media or transcripts (this tool operates on local files)
+*.mp4
+*.mkv
+*.mov
+*.avi
+*.webm
+*.mp3
+*.wav
+*.flac
+*.m4a
+*.jpg
+*.jpeg
+*.png
+*.tif
+*.tiff
+*.srt
+*.vtt
+*.eaf
