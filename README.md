@@ -1,6 +1,6 @@
 # MEDIAPREP
 
-A local **"collect & prepare media"** workbench with a clean single-page UI. Four
+A local **"collect & prepare media"** workbench with a clean single-page UI. Nine
 tools behind one sidebar, all running on your own machine — you point them at local
 files or folders and **nothing is uploaded anywhere**:
 
@@ -29,6 +29,11 @@ files or folders and **nothing is uploaded anywhere**:
    full recording's timeline.
 9. **Agreement** — Cohen's kappa over time and annotation matching between two coders'
    ELAN tiers.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/tools-dark.png">
+  <img src="docs/tools-light.png" width="820" alt="The nine MediaPrep tools as small diagrams: Transcribe, Archive Check, Scrub Metadata, Chunkle, Frame rate, Sync, and the prototypes Redact, Unchunkle and Agreement.">
+</picture>
 
 Companion to [VideoDrop](https://github.com/babajideowoyele/videodrop): *download →
 transcribe → prepare → archive*.

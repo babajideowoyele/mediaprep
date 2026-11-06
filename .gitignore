@@ -24,3 +24,6 @@ _c.js
 *.srt
 *.vtt
 *.eaf
+
+# README illustrations
+!docs/*.png
