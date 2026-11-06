@@ -1,6 +1,6 @@
 # MEDIAPREP
 
-A local **"collect & prepare media"** workbench with a clean single-page UI. Three
+A local **"collect & prepare media"** workbench with a clean single-page UI. Four
 tools behind one sidebar, all running on your own machine — you point them at local
 files or folders and **nothing is uploaded anywhere**:
 
@@ -12,6 +12,10 @@ files or folders and **nothing is uploaded anywhere**:
    preservation master.
 3. **Scrub Metadata** — find and remove EXIF, GPS, and embedded tags from images and
    A/V before you share.
+4. **Chunkle** — cut long recordings into pieces of a fixed length (for example
+   10 minutes). Each piece is named after where it starts, and a `chunks.csv`
+   records its exact start and end in the original, so annotations made on a piece
+   (for example in ELAN) can be moved back onto the full recording.
 
 Companion to [VideoDrop](https://github.com/babajideowoyele/videodrop): *download →
 transcribe → prepare → archive*.
@@ -21,7 +25,7 @@ transcribe → prepare → archive*.
 | Tool     | Needed for | Install |
 |----------|------------|---------|
 | Python 3.8+ | everything | [python.org](https://www.python.org/downloads/) |
-| ffmpeg / ffprobe | archive check, scrub, transcribe | Windows: `winget install Gyan.FFmpeg` · macOS: `brew install ffmpeg` · Linux: `apt install ffmpeg` |
+| ffmpeg / ffprobe | Chunkle, archive check, scrub, transcribe | Windows: `winget install Gyan.FFmpeg` · macOS: `brew install ffmpeg` · Linux: `apt install ffmpeg` |
 | faster-whisper | transcription | `pip install -U faster-whisper` |
 | Pillow   | image metadata scrub | `pip install -U Pillow` |
 
@@ -29,6 +33,13 @@ An NVIDIA GPU is optional — transcription runs on CPU by default and offers a 
 (CUDA)** option when a GPU is detected (needs CUDA/cuDNN libraries).
 
 ## Quick start
+
+**Windows, no command line:** on the GitHub page click **Code → Download ZIP**, unzip it,
+and double-click **`Start MediaPrep.bat`**. It checks for Python and ffmpeg, offers to
+install what is missing (with Windows' own `winget`), and opens MediaPrep in your browser.
+Chunkle needs only Python and ffmpeg; Transcribe also needs faster-whisper.
+
+**Any system:**
 
 ```bash
 git clone https://github.com/babajideowoyele/mediaprep.git
@@ -108,3 +119,19 @@ cache in `~/.cache/huggingface`.
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+## Chunkle: cutting long recordings
+
+1. Open **Chunkle** in the sidebar and paste the full path of the recording.
+2. Pick a length (5–30 minutes) and how to cut:
+   - **Fast** copies the video without re-encoding and cuts at the nearest keyframe, so a
+     piece can be a fraction of a second longer or shorter. Original quality, very quick.
+   - **Exact** cuts on the second and re-encodes to MP4 (H.264/AAC). Slower, smaller files,
+     which also helps with upload limits (MaskAnyone's standard setup accepts 200 MB).
+3. The pieces go into `<name>_chunks/` next to the recording, for example
+   `session03_part02_00h10m00s.mp4`, together with `chunks.csv` and a short `README.txt`.
+
+To move ELAN annotations from a piece back to the full recording, open the piece's `.eaf`
+and use **Edit → Shift All Annotations…** with that piece's `start_seconds` from
+`chunks.csv`. Cut the masked and the original version with the same settings so their
+pieces line up.

@@ -134,6 +134,7 @@ tr:last-child td{border-bottom:none}
     <div class="nav-item active" data-tool="transcribe"><i class="fas fa-closed-captioning"></i><span>Transcribe<small>audio/video → text</small></span></div>
     <div class="nav-item" data-tool="archive"><i class="fas fa-box-archive"></i><span>Archive Check<small>DANS formats</small></span></div>
     <div class="nav-item" data-tool="scrub"><i class="fas fa-broom"></i><span>Scrub Metadata<small>EXIF / GPS / tags</small></span></div>
+    <div class="nav-item" data-tool="chunk"><i class="fas fa-scissors"></i><span>Chunkle<small>cut long recordings</small></span></div>
     <div class="sidebar-foot">
       MEDIAPREP v1.0<br><span id="gpuMeta">—</span><br>local · 127.0.0.1
     </div>
@@ -220,6 +221,36 @@ tr:last-child td{border-bottom:none}
       <div class="card hidden" id="s_result"><div style="overflow-x:auto"><table id="s_table"></table></div></div>
       <div class="card hidden" id="s_prog"></div>
     </section>
+
+    <!-- ── CHUNKLE ── -->
+    <section class="panel" id="panel-chunk">
+      <p class="page-label">Chunkle</p>
+      <h1 class="page-title">Cut long recordings into <strong>pieces</strong></h1>
+      <p class="page-desc">Split a long video or audio file into pieces of a fixed length. Every piece is named after where it starts, and a <span class="mono">chunks.csv</span> records its exact start and end in the original, so ELAN annotations can be moved back onto the full recording.</p>
+      <div class="card"><div class="card-body">
+        <label class="fld" for="c_path">Recording (full path)</label>
+        <input type="text" id="c_path" placeholder="C:\path\to\session03.mp4">
+        <div style="display:flex;flex-wrap:wrap;gap:24px;margin-top:18px">
+          <div><label class="fld" for="c_min">Length of each piece (minutes)</label>
+            <select id="c_min">
+              <option value="5">5 minutes</option>
+              <option value="10" selected>10 minutes</option>
+              <option value="15">15 minutes</option>
+              <option value="20">20 minutes</option>
+              <option value="30">30 minutes</option>
+            </select></div>
+          <div><span class="fld">How to cut</span>
+            <div class="opt-grid" role="radiogroup" aria-label="How to cut">
+              <label class="opt"><input type="radio" name="c_mode" value="fast" checked><span>Fast<small>original quality</small></span></label>
+              <label class="opt"><input type="radio" name="c_mode" value="exact"><span>Exact<small>MP4, smaller</small></span></label>
+            </div></div>
+        </div>
+        <div class="hint" style="margin-top:10px"><b>Fast</b> copies the video without re-encoding and cuts at the nearest keyframe, so pieces can be a fraction of a second longer or shorter; the manifest records the real times. <b>Exact</b> cuts on the second and re-encodes to MP4 (H.264), which is slower but gives smaller files that fit MaskAnyone's 200&nbsp;MB upload limit more easily.</div>
+        <button class="btn btn-primary" id="c_run" style="margin-top:18px"><i class="fas fa-scissors"></i> Cut into pieces</button>
+        <div class="hint">The pieces go into a new folder next to the recording; the original is not changed.</div>
+      </div></div>
+      <div class="card hidden" id="c_prog"></div>
+    </section>
   </main>
 </div>
 
@@ -246,7 +277,7 @@ fetch('/api/env').then(r=>r.json()).then(env=>{
   $('#gpuMeta').textContent = env.gpu ? 'GPU: available' : 'GPU: none (CPU)';
   if(env.gpu){ $('#t_device').insertAdjacentHTML('beforeend','<option value="cuda">GPU (CUDA)</option>');
     $('#gpuHint').textContent='CUDA needs cuDNN libs; falls back if it errors.'; }
-  ['t_path','a_path','s_path'].forEach(id=>{ if(prefs[id]) $('#'+id).value=prefs[id]; });
+  ['t_path','a_path','s_path','c_path'].forEach(id=>{ if(prefs[id]) $('#'+id).value=prefs[id]; });
   if(env.problems&&env.problems.length){
     $('#envBanner').innerHTML='<div class="banner banner-warn"><i class="fas fa-triangle-exclamation"></i><div>'
       +env.problems.map(p=>'· '+p).join('<br>')+'</div></div>';
@@ -386,6 +417,19 @@ function renderScrub(rows){
   $('#s_table').innerHTML=html;
   $('#s_run').classList.toggle('hidden', withMeta===0);
 }
+// ── Chunkle ──
+$('#c_run').onclick=async()=>{
+  const path=$('#c_path').value.trim(); if(!path)return;
+  savePrefs({c_path:path});
+  const mode=(document.querySelector('input[name=c_mode]:checked')||{}).value||'fast';
+  $('#c_run').disabled=true;
+  const r=await fetch('/api/chunk',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path,minutes:$('#c_min').value,mode})});
+  const {job,error}=await r.json();
+  $('#c_run').disabled=false;
+  if(error){ $('#c_prog').classList.remove('hidden'); $('#c_prog').innerHTML='<div class="card-body"><span class="tag tag-rev">Error</span> '+escapeHtml(error)+'</div>'; return; }
+  runJob(job,$('#c_prog'),'Cutting');
+};
+
 $('#s_run').onclick=async()=>{
   const path=$('#s_path').value.trim(); if(!path)return;
   const overwrite=$('#s_overwrite').checked;

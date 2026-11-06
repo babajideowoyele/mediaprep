@@ -2,12 +2,14 @@
 """
 MEDIAPREP — a local "collect & prepare media" workbench.
 
-Three tools behind one Carbon-styled UI, all running on your own machine:
+Four tools behind one Carbon-styled UI, all running on your own machine:
 
   1. Transcribe      audio/video -> SRT / VTT / ELAN .eaf / TXT  (faster-whisper)
   2. Archive Check   inspect codecs/containers, flag against DANS preferred
                      formats, and convert to a preservation format  (ffmpeg)
   3. Scrub Metadata  strip EXIF/GPS from images and tags from A/V  (Pillow + ffmpeg)
+  4. Chunkle         cut long recordings into fixed-length pieces with a
+                     manifest of their start/end times  (ffmpeg)
 
 Run:  python app.py   (then open http://127.0.0.1:7655)
 Deps: ffmpeg/ffprobe, faster-whisper (transcribe), Pillow (image scrub).
@@ -440,6 +442,103 @@ def scrub(job_id, target, overwrite=False):
          outdir=str(Path(files[0]).parent))
 
 # ════════════════════════════════════════════════════════════════════
+# 4. CHUNKLE — cut long recordings into fixed-length pieces
+# ════════════════════════════════════════════════════════════════════
+def hms_tag(seconds):
+    s = int(round(seconds))
+    return f"{s // 3600:02d}h{s % 3600 // 60:02d}m{s % 60:02d}s"
+
+def hms(seconds):
+    ms = int(round(seconds * 1000))
+    h, ms = divmod(ms, 3600000); m, ms = divmod(ms, 60000); s, ms = divmod(ms, 1000)
+    return f"{h:02d}:{m:02d}:{s:02d}.{ms:03d}"
+
+def write_manifest(src, outdir, rows, mode):
+    import csv
+    man = outdir / "chunks.csv"
+    with open(man, "w", newline="", encoding="utf-8") as fh:
+        w = csv.writer(fh)
+        w.writerow(["file", "part", "start_seconds", "end_seconds", "duration_seconds", "start_hms", "end_hms"])
+        for r in rows:
+            w.writerow([r["file"], r["part"], f"{r['start']:.3f}", f"{r['end']:.3f}",
+                        f"{r['end'] - r['start']:.3f}", hms(r["start"]), hms(r["end"])])
+    note = outdir / "README.txt"
+    note.write_text(
+        f"Chunks of: {src.name}\nMode: {mode}\nCreated by Chunkle (MediaPrep).\n\n"
+        "chunks.csv lists, for every piece, where it starts and ends in the ORIGINAL recording.\n"
+        "To move annotations made on a piece back onto the full recording, add that piece's\n"
+        "start_seconds to their times. In ELAN: open the piece's .eaf and use\n"
+        "Edit > Shift All Annotations... with the start time from chunks.csv.\n\n"
+        "Cut the masked and the original version with the same settings, so their pieces\n"
+        "start and end at the same moments.\n", encoding="utf-8")
+    return man
+
+def chunk(job_id, path, minutes, mode):
+    ctl = JOB_CTL.setdefault(job_id, {}); cancel = ctl.setdefault("cancel", threading.Event())
+    src = Path(path)
+    if not src.is_file():
+        raise RuntimeError(f"file not found: {src}")
+    seg = float(minutes) * 60
+    if seg < 30:
+        raise RuntimeError("pieces must be at least 0.5 minutes long")
+    total = duration_of(src)
+    if not total:
+        raise RuntimeError("could not read the duration of this file")
+    outdir = src.parent / f"{src.stem}_chunks"
+    outdir.mkdir(exist_ok=True)
+    rows = []
+
+    if mode == "fast":
+        # Stream copy, cut at keyframes. The segment muxer reports the real
+        # start/end of every piece, so the manifest is exact even when a cut
+        # moves to the nearest keyframe.
+        emit(job_id, status="running", stage="chunk", percent=None,
+             message="Cutting at keyframes (no re-encoding)…", file=src.name)
+        tmp_list = outdir / "_segments.csv"
+        pattern = outdir / f"{src.stem}_seg%03d{src.suffix}"
+        run_proc(job_id, cancel,
+                 ["ffmpeg", "-y", "-i", str(src), "-map", "0", "-c", "copy",
+                  "-f", "segment", "-segment_time", str(seg), "-reset_timestamps", "1",
+                  "-segment_list", str(tmp_list), "-segment_list_type", "csv", str(pattern)],
+                 "ffmpeg segment failed")
+        import csv
+        with open(tmp_list, encoding="utf-8") as fh:
+            entries = [r for r in csv.reader(fh) if r]
+        for i, (fname, start, end) in enumerate(entries, 1):
+            start, end = float(start), float(end)
+            final = outdir / f"{src.stem}_part{i:02d}_{hms_tag(start)}{src.suffix}"
+            (outdir / fname).replace(final)
+            rows.append({"file": final.name, "part": i, "start": start, "end": end})
+        tmp_list.unlink(missing_ok=True)
+    else:
+        # Exact: cut on the second and re-encode to H.264/AAC MP4.
+        n = int(-(-total // seg))
+        for i in range(n):
+            if cancel.is_set():
+                raise Cancelled()
+            start = i * seg
+            dur = min(seg, total - start)
+            final = outdir / f"{src.stem}_part{i + 1:02d}_{hms_tag(start)}.mp4"
+            emit(job_id, status="running", stage="chunk", percent=round(i / n * 100, 1),
+                 message=f"Cutting piece {i + 1} of {n} (re-encoding)…", detail=f"{i + 1}/{n}")
+            run_proc(job_id, cancel,
+                     ["ffmpeg", "-y", "-ss", f"{start:.3f}", "-i", str(src), "-t", f"{dur:.3f}",
+                      "-map", "0:v:0?", "-map", "0:a:0?", "-c:v", "libx264", "-preset", "veryfast",
+                      "-crf", "23", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "128k",
+                      "-movflags", "+faststart", str(final)],
+                     "ffmpeg cut failed")
+            rows.append({"file": final.name, "part": i + 1, "start": start, "end": start + dur})
+
+    man = write_manifest(src, outdir, rows, "fast (keyframe cuts, original quality)" if mode == "fast"
+                         else "exact (re-encoded MP4)")
+    big = [r["file"] for r in rows if (outdir / r["file"]).stat().st_size > 200 * 1024 * 1024]
+    msg = f"{len(rows)} piece(s) in {outdir.name}"
+    if big:
+        msg += f" · {len(big)} over 200 MB (MaskAnyone's standard limit): use shorter pieces or Exact mode"
+    emit(job_id, status="done", stage="done", percent=100, message=msg,
+         files=[str(outdir / r["file"]) for r in rows] + [str(man)], outdir=str(outdir))
+
+# ════════════════════════════════════════════════════════════════════
 # HTTP layer
 # ════════════════════════════════════════════════════════════════════
 class Handler(BaseHTTPRequestHandler):
@@ -506,6 +605,11 @@ class Handler(BaseHTTPRequestHandler):
             elif parsed.path == "/api/convert":
                 d = self._read()
                 self._json({"job": submit(convert, path=d["path"].strip(), target=d["target"])})
+            elif parsed.path == "/api/chunk":
+                d = self._read()
+                self._json({"job": submit(chunk, path=d["path"].strip(),
+                                          minutes=float(d.get("minutes") or 10),
+                                          mode="exact" if d.get("mode") == "exact" else "fast")})
             elif parsed.path == "/api/scrub":
                 d = self._read()
                 self._json({"job": submit(scrub, target=d["path"].strip(),
