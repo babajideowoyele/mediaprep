@@ -16,6 +16,19 @@ files or folders and **nothing is uploaded anywhere**:
    10 minutes). Each piece is named after where it starts, and a `chunks.csv`
    records its exact start and end in the original, so annotations made on a piece
    (for example in ELAN) can be moved back onto the full recording.
+5. **Frame rate** — detect variable frame rate (common in phone and screen recordings,
+   and a cause of drifting ELAN annotations) and convert to a constant rate.
+6. **Sync** — find the time offset between two recordings of the same session from their
+   sound, and write an aligned copy.
+
+*Transcripts & coding (prototypes):*
+
+7. **Redact** — replace names and places in a transcript (`.srt`, `.vtt`, `.txt`, `.eaf`),
+   with suggestions for capitalised words.
+8. **Unchunkle** — merge the ELAN files made on Chunkle pieces into one `.eaf` on the
+   full recording's timeline.
+9. **Agreement** — Cohen's kappa over time and annotation matching between two coders'
+   ELAN tiers.
 
 Companion to [VideoDrop](https://github.com/babajideowoyele/videodrop): *download →
 transcribe → prepare → archive*.
@@ -50,7 +63,7 @@ python app.py          # use python3 on macOS/Linux
 It prints the address and opens `http://127.0.0.1:7655`. Press `Ctrl+C` to stop.
 On Windows you can also run `run.ps1`.
 
-## The three tools
+## Transcribe, Archive Check and Scrub
 
 ### Transcribe
 Point it at an audio or video file, pick a Whisper model (tiny → large-v3), a language
@@ -134,4 +147,13 @@ MIT — see [LICENSE](LICENSE).
 To move ELAN annotations from a piece back to the full recording, open the piece's `.eaf`
 and use **Edit → Shift All Annotations…** with that piece's `start_seconds` from
 `chunks.csv`. Cut the masked and the original version with the same settings so their
-pieces line up.
+pieces line up. Or let **Unchunkle** do it: point it at the `_chunks` folder after
+saving each piece's `.eaf` next to the piece with the same name.
+
+## Prototypes: check the output
+
+Frame rate, Sync, Redact, Unchunkle and Agreement are early prototypes. They never change
+the original files, but check their output before relying on it: open a converted or
+aligned video next to the original, read a redacted transcript in full (names can be
+misspelled or in lower case), and open a merged `.eaf` in ELAN. Sync works best with a
+clear shared sound (a clap at the start) and uses the first three minutes.

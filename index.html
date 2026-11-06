@@ -135,6 +135,12 @@ tr:last-child td{border-bottom:none}
     <div class="nav-item" data-tool="archive"><i class="fas fa-box-archive"></i><span>Archive Check<small>DANS formats</small></span></div>
     <div class="nav-item" data-tool="scrub"><i class="fas fa-broom"></i><span>Scrub Metadata<small>EXIF / GPS / tags</small></span></div>
     <div class="nav-item" data-tool="chunk"><i class="fas fa-scissors"></i><span>Chunkle<small>cut long recordings</small></span></div>
+    <div class="nav-item" data-tool="fps"><i class="fas fa-film"></i><span>Frame rate<small>fix drifting video</small></span></div>
+    <div class="nav-item" data-tool="sync"><i class="fas fa-arrows-left-right-to-line"></i><span>Sync<small>align two recordings</small></span></div>
+    <div class="sidebar-label">Transcripts &amp; coding <span class="tag tag-info" style="font-size:9px;padding:0 5px">prototype</span></div>
+    <div class="nav-item" data-tool="redact"><i class="fas fa-user-slash"></i><span>Redact<small>names in transcripts</small></span></div>
+    <div class="nav-item" data-tool="unchunkle"><i class="fas fa-object-group"></i><span>Unchunkle<small>merge piece annotations</small></span></div>
+    <div class="nav-item" data-tool="agree"><i class="fas fa-scale-balanced"></i><span>Agreement<small>compare two coders</small></span></div>
     <div class="sidebar-foot">
       MEDIAPREP v1.1<br><span id="gpuMeta">—</span><br>local · 127.0.0.1
     </div>
@@ -251,6 +257,89 @@ tr:last-child td{border-bottom:none}
       </div></div>
       <div class="card hidden" id="c_prog"></div>
     </section>
+
+    <!-- ── FRAME RATE ── -->
+    <section class="panel" id="panel-fps">
+      <p class="page-label">Frame rate · prototype</p>
+      <h1 class="page-title">Stop annotations from <strong>drifting</strong></h1>
+      <p class="page-desc">Phone and webcam recordings often have a <em>variable</em> frame rate, which makes annotations slowly drift out of sync in ELAN. Check a file, and convert it to a constant frame rate if needed.</p>
+      <div class="card"><div class="card-body">
+        <label class="fld" for="f_path">Video (full path)</label>
+        <div class="row"><input type="text" id="f_path" placeholder="C:\path\to\phone-recording.mp4">
+          <button class="btn btn-secondary" id="f_check"><i class="fas fa-magnifying-glass"></i> Check</button></div>
+        <div id="f_result" class="hidden" style="margin-top:16px"></div>
+      </div></div>
+      <div class="card hidden" id="f_prog"></div>
+    </section>
+
+    <!-- ── SYNC ── -->
+    <section class="panel" id="panel-sync">
+      <p class="page-label">Sync · prototype</p>
+      <h1 class="page-title">Align <strong>two recordings</strong></h1>
+      <p class="page-desc">Two cameras, or a camera and a separate audio recorder, rarely start at the same moment. Sync listens to both and finds the offset from the sound (a clap at the start helps). Then it can trim the earlier recording so both start together.</p>
+      <div class="card"><div class="card-body">
+        <label class="fld" for="y_ref">Reference recording (full path)</label>
+        <input type="text" id="y_ref" style="width:100%" placeholder="C:\path\to\camera-A.mp4">
+        <label class="fld" for="y_other" style="margin-top:12px">Second recording (full path)</label>
+        <input type="text" id="y_other" style="width:100%" placeholder="C:\path\to\camera-B.mp4">
+        <button class="btn btn-primary" id="y_run" style="margin-top:16px"><i class="fas fa-wave-square"></i> Find offset</button>
+        <div class="hint">Uses the first 3 minutes of sound from each file.</div>
+        <div id="y_result" class="hidden" style="margin-top:16px"></div>
+      </div></div>
+      <div class="card hidden" id="y_prog"></div>
+    </section>
+
+    <!-- ── REDACT ── -->
+    <section class="panel" id="panel-redact">
+      <p class="page-label">Redact · prototype</p>
+      <h1 class="page-title">Remove names from <strong>transcripts</strong></h1>
+      <p class="page-desc">Masking a voice does not change <em>what</em> people say. Replace names, places and other identifying words in SRT, WebVTT, plain-text or ELAN files. Suggestions are capitalised words worth checking; you decide what goes. Always read the result.</p>
+      <div class="card"><div class="card-body">
+        <label class="fld" for="r_path">Transcript (full path)</label>
+        <div class="row"><input type="text" id="r_path" placeholder="C:\path\to\interview.srt">
+          <button class="btn btn-secondary" id="r_suggest"><i class="fas fa-lightbulb"></i> Suggest</button></div>
+        <div id="r_sugg" style="margin-top:12px"></div>
+        <label class="fld" for="r_terms" style="margin-top:12px">Words to replace (one per line; longer phrases first is fine)</label>
+        <textarea id="r_terms" rows="5" style="width:100%;font-family:inherit;font-size:14px;padding:10px;border:1px solid var(--border);background:var(--hover);color:var(--text)" placeholder="Anna Jansen&#10;Nijmegen"></textarea>
+        <div class="row" style="margin-top:12px;align-items:center">
+          <label class="fld" for="r_repl" style="margin:0">Replace with</label>
+          <input type="text" id="r_repl" value="[REDACTED]" style="max-width:200px">
+          <button class="btn btn-primary" id="r_run"><i class="fas fa-user-slash"></i> Redact</button>
+        </div>
+        <div id="r_result" class="hidden" style="margin-top:14px"></div>
+      </div></div>
+    </section>
+
+    <!-- ── UNCHUNKLE ── -->
+    <section class="panel" id="panel-unchunkle">
+      <p class="page-label">Unchunkle · prototype</p>
+      <h1 class="page-title">Merge piece annotations into <strong>one file</strong></h1>
+      <p class="page-desc">After annotating Chunkle pieces in ELAN, save each piece's <span class="mono">.eaf</span> next to it with the same name (e.g. <span class="mono">session03_part02_00h10m00s.eaf</span>). Unchunkle shifts every annotation by its piece's start time and writes one <span class="mono">.eaf</span> for the full recording.</p>
+      <div class="card"><div class="card-body">
+        <label class="fld" for="u_path">Chunkle folder (the one with chunks.csv)</label>
+        <div class="row"><input type="text" id="u_path" placeholder="C:\path\to\session03_chunks">
+          <button class="btn btn-primary" id="u_run"><i class="fas fa-object-group"></i> Merge</button></div>
+        <div id="u_result" class="hidden" style="margin-top:14px"></div>
+      </div></div>
+    </section>
+
+    <!-- ── AGREEMENT ── -->
+    <section class="panel" id="panel-agree">
+      <p class="page-label">Agreement · prototype</p>
+      <h1 class="page-title">Compare <strong>two coders</strong></h1>
+      <p class="page-desc">Inter-rater agreement between two ELAN files: Cohen's kappa over time (in 100 ms steps, with "no annotation" as its own category), and how many annotations match between coders.</p>
+      <div class="card"><div class="card-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div><label class="fld" for="g_a">Coder A (.eaf)</label><input type="text" id="g_a" style="width:100%" placeholder="C:\path\to\coderA.eaf">
+            <label class="fld" for="g_ta" style="margin-top:8px">Tier</label><select id="g_ta"><option value="">load file first</option></select></div>
+          <div><label class="fld" for="g_b">Coder B (.eaf)</label><input type="text" id="g_b" style="width:100%" placeholder="C:\path\to\coderB.eaf">
+            <label class="fld" for="g_tb" style="margin-top:8px">Tier</label><select id="g_tb"><option value="">load file first</option></select></div>
+        </div>
+        <div class="row" style="margin-top:14px"><button class="btn btn-secondary" id="g_load"><i class="fas fa-layer-group"></i> Load tiers</button>
+          <button class="btn btn-primary" id="g_run"><i class="fas fa-scale-balanced"></i> Compare</button></div>
+        <div id="g_result" class="hidden" style="margin-top:16px"></div>
+      </div></div>
+    </section>
   </main>
 </div>
 
@@ -277,7 +366,7 @@ fetch('/api/env').then(r=>r.json()).then(env=>{
   $('#gpuMeta').textContent = env.gpu ? 'GPU: available' : 'GPU: none (CPU)';
   if(env.gpu){ $('#t_device').insertAdjacentHTML('beforeend','<option value="cuda">GPU (CUDA)</option>');
     $('#gpuHint').textContent='CUDA needs cuDNN libs; falls back if it errors.'; }
-  ['t_path','a_path','s_path','c_path'].forEach(id=>{ if(prefs[id]) $('#'+id).value=prefs[id]; });
+  ['t_path','a_path','s_path','c_path','f_path','y_ref','y_other','r_path','u_path'].forEach(id=>{ if(prefs[id]) $('#'+id).value=prefs[id]; });
   if(env.problems&&env.problems.length){
     $('#envBanner').innerHTML='<div class="banner banner-warn"><i class="fas fa-triangle-exclamation"></i><div>'
       +env.problems.map(p=>'· '+p).join('<br>')+'</div></div>';
@@ -417,6 +506,113 @@ function renderScrub(rows){
   $('#s_table').innerHTML=html;
   $('#s_run').classList.toggle('hidden', withMeta===0);
 }
+// ── shared helpers for the prototypes ──
+async function api(path, body){
+  const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const d=await r.json(); if(d.error) throw new Error(d.error); return d;
+}
+function showErr(el,e){ el.classList.remove('hidden'); el.innerHTML='<span class="tag tag-rev">Error</span> '+escapeHtml(e.message||String(e)); }
+function fileLine(p){ return '<div class="file-item"><i class="fas fa-file"></i><span class="file-name">'+escapeHtml(baseName(p))+'</span>'
+  +'<button class="btn btn-ghost btn-sm" onclick="openPath(\''+p.replace(/\\/g,'\\\\').replace(/\x27/g,'\\\x27')+'\')"><i class="fas fa-folder-open"></i> Open folder</button></div>'; }
+
+// ── Frame rate ──
+$('#f_check').onclick=async()=>{
+  const path=$('#f_path').value.trim(); if(!path)return; savePrefs({f_path:path});
+  const el=$('#f_result');
+  try{
+    const r=await api('/api/framerate/inspect',{path});
+    el.classList.remove('hidden');
+    el.innerHTML='<p>'+(r.variable?'<span class="tag tag-acc">Variable</span> ':'<span class="tag tag-pref">Constant</span> ')+escapeHtml(r.note)+'</p>'
+      +'<p class="hint">Nominal '+r.r_frame_rate+' fps · average '+r.avg_frame_rate+' fps</p>'
+      +'<div class="row" style="margin-top:10px;align-items:center"><label class="fld" for="f_fps" style="margin:0">Convert to</label>'
+      +'<select id="f_fps">'+[24,25,30,50,60].map(v=>'<option'+(v===r.suggested_fps?' selected':'')+'>'+v+'</option>').join('')+(([24,25,30,50,60].includes(r.suggested_fps))?'':'<option selected>'+r.suggested_fps+'</option>')+'</select>'
+      +'<span class="hint" style="margin:0">fps</span><button class="btn btn-primary btn-sm" id="f_conv"><i class="fas fa-film"></i> Convert</button></div>';
+    $('#f_conv').onclick=async()=>{ try{ const {job}=await api('/api/framerate/convert',{path,fps:$('#f_fps').value}); runJob(job,$('#f_prog'),'Converting'); }catch(e){ showErr($('#f_prog'),e); } };
+  }catch(e){ showErr(el,e); }
+};
+
+// ── Sync ──
+$('#y_run').onclick=async()=>{
+  const reference=$('#y_ref').value.trim(), other=$('#y_other').value.trim(); if(!reference||!other)return;
+  savePrefs({y_ref:reference,y_other:other});
+  const el=$('#y_result'), btn=$('#y_run'); btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Listening…';
+  try{
+    const r=await api('/api/sync',{reference,other});
+    const s=r.offset_seconds;
+    el.classList.remove('hidden');
+    el.innerHTML='<p style="font-size:20px" class="mono">'+(s>=0?'+':'')+s.toFixed(3)+' s</p>'
+      +'<p>'+(s>=0?'The second recording starts '+s.toFixed(2)+' s <b>later</b> than the reference.':'The second recording starts '+(-s).toFixed(2)+' s <b>earlier</b> than the reference.')+'</p>'
+      +'<p class="hint">'+(r.reliable?'<span class="tag tag-pref">Clear match</span>':'<span class="tag tag-acc">Weak match</span> Check by ear; a clap at the start of both recordings helps.')+' (score '+r.confidence+')</p>'
+      +'<button class="btn btn-secondary btn-sm" id="y_align" style="margin-top:8px"><i class="fas fa-scissors"></i> Write an aligned copy</button>'
+      +'<p class="hint">Trims the start of the recording that began earlier, so both copies start together. Originals are not changed.</p>';
+    $('#y_align').onclick=async()=>{ try{ const {job}=await api('/api/sync/align',{reference,other,offset:s}); runJob(job,$('#y_prog'),'Aligning'); }catch(e){ showErr($('#y_prog'),e); } };
+  }catch(e){ showErr(el,e); }
+  finally{ btn.disabled=false; btn.innerHTML='<i class="fas fa-wave-square"></i> Find offset'; }
+};
+
+// ── Redact ──
+$('#r_suggest').onclick=async()=>{
+  const path=$('#r_path').value.trim(); if(!path)return; savePrefs({r_path:path});
+  try{
+    const {terms}=await api('/api/redact/suggest',{path});
+    $('#r_sugg').innerHTML=terms.length?'<span class="fld">Suggestions (click to add)</span><div class="opt-grid">'
+      +terms.map(t=>'<button class="btn btn-secondary btn-sm sugg" data-t="'+escapeHtml(t.term)+'">'+escapeHtml(t.term)+' <span class="hint" style="margin:0">'+t.count+'×</span></button>').join('')+'</div>'
+      :'<span class="hint">No obvious names found. Add words yourself.</span>';
+    document.querySelectorAll('.sugg').forEach(b=>b.onclick=()=>{ const ta=$('#r_terms'); const t=b.dataset.t;
+      if(!ta.value.split('\n').map(x=>x.trim()).includes(t)) ta.value=(ta.value.trim()?ta.value.trim()+'\n':'')+t; b.disabled=true; });
+  }catch(e){ showErr($('#r_sugg'),e); }
+};
+$('#r_run').onclick=async()=>{
+  const path=$('#r_path').value.trim(); if(!path)return;
+  const terms=$('#r_terms').value.split('\n'), el=$('#r_result');
+  try{
+    const r=await api('/api/redact',{path,terms,replacement:$('#r_repl').value});
+    el.classList.remove('hidden');
+    el.innerHTML='<p><span class="tag tag-pref">Done</span> '+r.report.replacements+' replacement(s); '+r.report.terms_not_found+' word(s) not found.</p>'+fileLine(r.file)
+      +'<p class="hint">Read the redacted file before sharing: names can be misspelled, shortened or written in lower case.</p>';
+  }catch(e){ showErr(el,e); }
+};
+
+// ── Unchunkle ──
+$('#u_run').onclick=async()=>{
+  const path=$('#u_path').value.trim(); if(!path)return; savePrefs({u_path:path});
+  const el=$('#u_result');
+  try{
+    const r=await api('/api/unchunkle',{path}), rep=r.report;
+    el.classList.remove('hidden');
+    el.innerHTML='<p><span class="tag tag-pref">Merged</span> '+rep.annotations+' annotation(s) from '+rep.merged.length+' piece(s) on tier(s): '+escapeHtml(rep.tiers.join(', '))+'.</p>'
+      +(rep.missing.length?'<p class="hint"><span class="tag tag-acc">Missing</span> no .eaf for: '+escapeHtml(rep.missing.join(', '))+'</p>':'')+fileLine(r.file)
+      +'<p class="hint">Open the merged file in ELAN; it points to the full recording.</p>';
+  }catch(e){ showErr(el,e); }
+};
+
+// ── Agreement ──
+$('#g_load').onclick=async()=>{
+  for(const [inp,sel] of [['#g_a','#g_ta'],['#g_b','#g_tb']]){
+    const path=$(inp).value.trim(); if(!path) continue;
+    try{ const {tiers}=await api('/api/agreement/tiers',{path});
+      $(sel).innerHTML=Object.entries(tiers).map(([t,n])=>'<option value="'+escapeHtml(t)+'">'+escapeHtml(t)+' ('+n+')</option>').join(''); }
+    catch(e){ showErr($('#g_result'),e); }
+  }
+};
+$('#g_run').onclick=async()=>{
+  const a=$('#g_a').value.trim(), b=$('#g_b').value.trim(); if(!a||!b||!$('#g_ta').value||!$('#g_tb').value){ return; }
+  const el=$('#g_result');
+  try{
+    const r=await api('/api/agreement',{a,tier_a:$('#g_ta').value,b,tier_b:$('#g_tb').value});
+    const k=r.cohens_kappa, verdict=k>=0.8?'almost perfect':k>=0.6?'substantial':k>=0.4?'moderate':k>=0.2?'fair':'slight';
+    el.classList.remove('hidden');
+    el.innerHTML='<div style="display:flex;gap:28px;flex-wrap:wrap">'
+      +'<div><div class="mono" style="font-size:26px">'+k.toFixed(2)+'</div><div class="hint">Cohen\'s kappa ('+verdict+')</div></div>'
+      +'<div><div class="mono" style="font-size:26px">'+r.percent_agreement+'%</div><div class="hint">time in agreement</div></div>'
+      +'<div><div class="mono" style="font-size:26px">'+r.events_matched+'/'+r.events_a+'</div><div class="hint">A\'s annotations matched by B ('+r.matched_same_label+' with the same label)</div></div></div>'
+      +'<details style="margin-top:12px"><summary class="hint" style="cursor:pointer">Confusion (seconds; rows = coder A, columns = coder B)</summary><div style="overflow-x:auto"><table><tr><th></th>'
+      +r.categories.map(c=>'<th>'+escapeHtml(c)+'</th>').join('')+'</tr>'
+      +r.categories.map(x=>'<tr><td class="tprops">'+escapeHtml(x)+'</td>'+r.categories.map(y=>'<td class="tprops">'+r.confusion_seconds[x][y]+'</td>').join('')+'</tr>').join('')+'</table></div></details>'
+      +'<p class="hint">Kappa labels follow Landis &amp; Koch (1977). Time is compared in '+r.step_ms+' ms steps.</p>';
+  }catch(e){ showErr(el,e); }
+};
+
 // ── Chunkle ──
 $('#c_run').onclick=async()=>{
   const path=$('#c_path').value.trim(); if(!path)return;

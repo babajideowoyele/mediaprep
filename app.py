@@ -31,6 +31,8 @@ from pathlib import Path
 from urllib.parse import urlparse, parse_qs
 
 HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+import researchtools  # noqa: E402  (prototypes: unchunkle, frame rate, sync, redact, agreement)
 
 # Some Anaconda/Windows setups export a broken SSL_CERT_FILE pointing at a file
 # that doesn't exist, which breaks the Hugging Face model download that
@@ -192,7 +194,7 @@ def write_eaf(segs, path, media_path):
     if ext in {".mp4", ".m4v", ".mkv", ".mov", ".avi", ".webm"}:
         mime = "video/mp4" if ext in {".mp4", ".m4v"} else "video/x-matroska"
     lines = ['<?xml version="1.0" encoding="UTF-8"?>',
-             '<ANNOTATION_DOCUMENT AUTHOR="MediaPrep" DATE="2026" FORMAT="3.0" VERSION="3.0" '
+             f'<ANNOTATION_DOCUMENT AUTHOR="MediaPrep" DATE="{__import__("datetime").datetime.now().astimezone().isoformat(timespec="seconds")}" FORMAT="3.0" VERSION="3.0" '
              'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
              'xsi:noNamespaceSchemaLocation="http://www.mpi.nl/tools/elan/EAFv3.0.xsd">',
              f'  <HEADER MEDIA_FILE="" TIME_UNITS="milliseconds">',
@@ -538,6 +540,14 @@ def chunk(job_id, path, minutes, mode):
     emit(job_id, status="done", stage="done", percent=100, message=msg,
          files=[str(outdir / r["file"]) for r in rows] + [str(man)], outdir=str(outdir))
 
+def ffmpeg_job(job_id, label, build):
+    ctl = JOB_CTL.setdefault(job_id, {}); cancel = ctl.setdefault("cancel", threading.Event())
+    out, cmd = build()
+    emit(job_id, status="running", stage="ffmpeg", percent=None, message=label + "…")
+    run_proc(job_id, cancel, cmd, "ffmpeg failed")
+    emit(job_id, status="done", stage="done", percent=100, message="Done", files=[str(out)],
+         outdir=str(Path(out).parent))
+
 # ════════════════════════════════════════════════════════════════════
 # HTTP layer
 # ════════════════════════════════════════════════════════════════════
@@ -610,6 +620,37 @@ class Handler(BaseHTTPRequestHandler):
                 self._json({"job": submit(chunk, path=d["path"].strip(),
                                           minutes=float(d.get("minutes") or 10),
                                           mode="exact" if d.get("mode") == "exact" else "fast")})
+            elif parsed.path == "/api/unchunkle":
+                out, rep = researchtools.unchunkle(self._read()["path"].strip())
+                self._json({"file": str(out), "report": rep})
+            elif parsed.path == "/api/framerate/inspect":
+                self._json(researchtools.frame_rate_report(ffprobe, self._read()["path"].strip()))
+            elif parsed.path == "/api/framerate/convert":
+                d = self._read()
+                self._json({"job": submit(ffmpeg_job, label="Converting to a constant frame rate",
+                                          build=lambda: researchtools.to_constant_fps_cmd(d["path"].strip(), int(d["fps"])))})
+            elif parsed.path == "/api/sync":
+                d = self._read()
+                self._json(researchtools.find_offset(d["reference"].strip(), d["other"].strip(),
+                                                     int(d.get("seconds") or 180)))
+            elif parsed.path == "/api/sync/align":
+                d = self._read()
+                self._json({"job": submit(ffmpeg_job, label="Writing an aligned copy",
+                                          build=lambda: researchtools.aligned_copy_cmd(
+                                              d["reference"].strip(), d["other"].strip(), float(d["offset"])))})
+            elif parsed.path == "/api/redact/suggest":
+                self._json({"terms": researchtools.suggest_terms(self._read()["path"].strip())})
+            elif parsed.path == "/api/redact":
+                d = self._read()
+                out, rep = researchtools.redact(d["path"].strip(), d.get("terms") or [],
+                                                d.get("replacement") or "[REDACTED]")
+                self._json({"file": str(out), "report": rep})
+            elif parsed.path == "/api/agreement/tiers":
+                self._json({"tiers": researchtools.eaf_tiers(self._read()["path"].strip())})
+            elif parsed.path == "/api/agreement":
+                d = self._read()
+                self._json(researchtools.agreement(d["a"].strip(), d["tier_a"], d["b"].strip(), d["tier_b"],
+                                                   int(d.get("step_ms") or 100)))
             elif parsed.path == "/api/scrub":
                 d = self._read()
                 self._json({"job": submit(scrub, target=d["path"].strip(),
